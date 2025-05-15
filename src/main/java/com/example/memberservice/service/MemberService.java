@@ -41,6 +41,11 @@ public class MemberService {
         });
     }
 
+    public void deleteMember(Long id) {
+        var member = memberRepository.findById(id).orElseThrow(() -> new MemberNotFoundException(id));
+        memberRepository.delete(member);
+    }
+
     public MemberWithPointsDto getMemberWithPoints(Long id) {
         var member = memberRepository.findById(id).orElseThrow(() -> new MemberNotFoundException(id));
         Integer availablePoints = pointRecordRepository.sumAvailablePoints(member, LocalDateTime.now());

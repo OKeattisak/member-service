@@ -19,6 +19,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<?>> handleMemberNotFoundException(MemberNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
     }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiResponse<?>> handleInvalidCredentials(InvalidCredentialsException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(e.getMessage()));
+    }
     
     @ExceptionHandler(PointBalanceNotFoundException.class)
     public ResponseEntity<ApiResponse<?>> handlePointBalanceNotFoundException(PointBalanceNotFoundException e) {

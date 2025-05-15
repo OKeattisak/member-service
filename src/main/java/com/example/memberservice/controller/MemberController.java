@@ -3,6 +3,7 @@ package com.example.memberservice.controller;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,5 +30,11 @@ public class MemberController {
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<MemberWithPointsDto>> getMemberWithPoints(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok(memberService.getMemberWithPoints(id)));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteMember(@PathVariable Long id) {
+        memberService.deleteMember(id);
+        return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }
