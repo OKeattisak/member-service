@@ -1,7 +1,6 @@
 package com.example.memberservice.filter;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -44,9 +43,9 @@ public class JwtFilter extends OncePerRequestFilter {
         String jwtToken = null;
         String username = null;
         String tokenType = null;
+        String role = null;
 
         if (authHeader == null || !authHeader.startsWith(AUTHENTICATION_SCHEME)) {
-            logger.trace("Authorization header is missing or does not start with Bearer scheme. Passing to next filter.");
             filterChain.doFilter(request, response);
             return;
         }
@@ -55,24 +54,21 @@ public class JwtFilter extends OncePerRequestFilter {
         DecodedJWT decodedAccessToken = jwtUtils.validateToken(jwtToken);
 
         if (decodedAccessToken == null) {
-            logger.warn("JWT token validation failed for token: {}", jwtToken);
             filterChain.doFilter(request, response);
             return;
         }
 
         username = jwtUtils.getUsernameFromToken(decodedAccessToken);
         tokenType = jwtUtils.getClaimFromToken(decodedAccessToken, "type");
+        role = jwtUtils.getClaimFromToken(decodedAccessToken, "role");
+
         if (tokenType == null || !tokenType.equals("ACCESS")) {
-            logger.warn("Invalid token type received: {}. Expected ACCESS.", tokenType);
             filterChain.doFilter(request, response);
             return;
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            logger.debug("Valid ACCESS token received for user: {}", username);
-            List<GrantedAuthority> authorities = new ArrayList<>();
-            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
-
+            List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
             UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
                     username,
                     null,
@@ -80,7 +76,6 @@ public class JwtFilter extends OncePerRequestFilter {
             );
             authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-            logger.info("User '{}' authenticated successfully. Setting SecurityContext.", username);
         }else {
             if (username == null) {
                 logger.warn("Username could not be extracted from a valid token. This should not happen.");

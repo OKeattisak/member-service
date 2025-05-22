@@ -1,13 +1,10 @@
 package com.example.memberservice.controller;
 
+import com.example.memberservice.dto.RegisterRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.example.memberservice.dto.ApiResponse;
 import com.example.memberservice.dto.MemberWithPointsDto;
@@ -30,6 +27,11 @@ public class MemberController {
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<MemberWithPointsDto>> getMemberWithPoints(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.ok(memberService.getMemberWithPoints(id)));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse<MemberWithPointsDto>> registerMember(@RequestBody RegisterRequest registerRequest) {
+        return ResponseEntity.ok(ApiResponse.ok(memberService.registerMember(registerRequest)));
     }
 
     @DeleteMapping("/{id}")

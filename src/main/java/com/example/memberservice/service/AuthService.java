@@ -9,6 +9,8 @@ import com.example.memberservice.exception.InvalidCredentialsException;
 import com.example.memberservice.repository.AccountRepository;
 import com.example.memberservice.utils.JwtUtils;
 
+import java.time.LocalDateTime;
+
 @Service
 public class AuthService {
 
@@ -24,7 +26,7 @@ public class AuthService {
     
     public LoginResponse login(LoginRequest loginRequest) {
         Account account = accountRepository.findByUsername(loginRequest.getUsername())
-        .orElseThrow(() -> new InvalidCredentialsException("Invalid username or password"));
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid username or password"));
 
         if (!passwordEncoder.matches(loginRequest.getPassword(), account.getPassword())) {
             throw new InvalidCredentialsException("Invalid username or password");
@@ -32,6 +34,9 @@ public class AuthService {
 
         String accessToken = jwtUtils.createAccessToken(account.getUsername());
         String refreshToken = jwtUtils.createRefreshToken(account.getUsername());
+
+        account.setLastLoginAt(LocalDateTime.now());
+        accountRepository.save(account);
 
         return new LoginResponse(accessToken, refreshToken);
     }

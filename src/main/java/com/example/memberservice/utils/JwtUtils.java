@@ -28,6 +28,7 @@ public class JwtUtils {
             .withExpiresAt(new Date(System.currentTimeMillis() + accessTokenExpiration * 1000L))
             .withIssuer(issuer)
             .withClaim("type", "ACCESS")
+            .withClaim("role", "USER")
             .sign(algorithm);
     }
 
@@ -38,6 +39,7 @@ public class JwtUtils {
             .withExpiresAt(new Date(System.currentTimeMillis() + refreshTokenExpiration * 1000L))
             .withIssuer(issuer)
             .withClaim("type", "REFRESH")
+            .withClaim("role", "USER")
             .sign(algorithm);
     }
 
