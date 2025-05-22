@@ -40,6 +40,38 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<?>> handleDuplicateEmailException(DuplicateEmailException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(e.getMessage()));
     }
+
+    @ExceptionHandler(PrivilegeNotFoundException.class)
+    public ResponseEntity<ApiResponse<?>> handlePrivilegeNotFoundException(PrivilegeNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(e.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicatePrivilegeNameException.class)
+    public ResponseEntity<ApiResponse<?>> handleDuplicatePrivilegeNameException(DuplicatePrivilegeNameException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(e.getMessage()));
+    }
+
+    @ExceptionHandler(PrivilegeNotActiveException.class)
+    public ResponseEntity<ApiResponse<?>> handlePrivilegeNotActiveException(PrivilegeNotActiveException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error(e.getMessage()));
+    }
+
+    @ExceptionHandler(PrivilegeNotAuthorizedException.class)
+    public ResponseEntity<ApiResponse<?>> handlePrivilegeNotAuthorizedException(PrivilegeNotAuthorizedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error(e.getMessage()));
+    }
+
+    @ExceptionHandler(UnsupportedOperationException.class)
+    public ResponseEntity<ApiResponse<?>> handleUnsupportedOperationException(UnsupportedOperationException e) {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(ApiResponse.error(e.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<?>> handleIllegalStateException(IllegalStateException e) {
+        // Log this as it might indicate an internal logic error or misconfiguration
+        logger.error("Illegal state encountered: ", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.error(e.getMessage()));
+    }
     
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleException(Exception e) {

@@ -10,24 +10,24 @@ import com.example.memberservice.entity.Member;
 import com.example.memberservice.entity.PointBalance;
 import com.example.memberservice.entity.PointRecord;
 import com.example.memberservice.entity.PointTransaction;
-import com.example.memberservice.exception.InsufficientPointBalanceException;
-import com.example.memberservice.exception.PointBalanceNotFoundException;
-import com.example.memberservice.repository.PointBalanceRepository;
-import com.example.memberservice.repository.PointRecordRepository;
-import com.example.memberservice.repository.PointTransactionRepository;
+import com.example.memberservice.dto.PrivilegeUseRequestDto;
+import com.example.memberservice.entity.Privilege;
+import com.example.memberservice.exception.*;
+import com.example.memberservice.repository.*;
+import lombok.RequiredArgsConstructor; // Added for constructor injection
 
 @Service
+@RequiredArgsConstructor // Added for constructor injection
 public class PointService {
     private final PointRecordRepository pointRecordRepository;
     private final PointTransactionRepository pointTransactionRepository;
     private final PointBalanceRepository pointBalanceRepository;
+    private final MemberRepository memberRepository; // Added
+    private final PrivilegeService privilegeService; // Added
+    private final PrivilegeUsageLogService privilegeUsageLogService; // Added
 
-    public PointService(PointRecordRepository pointRecordRepository, PointTransactionRepository pointTransactionRepository, PointBalanceRepository pointBalanceRepository) {
-        this.pointRecordRepository = pointRecordRepository;
-        this.pointTransactionRepository = pointTransactionRepository;
-        this.pointBalanceRepository = pointBalanceRepository;
-    }
-    
+    // Constructor removed as @RequiredArgsConstructor will handle it
+
     @Transactional
     public void redeemPoints(Member member, Integer pointsToRedeem, String description) {
         List<PointRecord> availableRecords = pointRecordRepository.findAvailablePoints(member, LocalDateTime.now());
@@ -95,5 +95,63 @@ public class PointService {
         balance.setTotalPoints(balance.getTotalPoints() + pointsEarned);
         balance.setLastUpdated(LocalDateTime.now());
         pointBalanceRepository.save(balance);
+    }
+
+    @Transactional
+    public void applyPrivilegeForPointBenefit(Long memberId, PrivilegeUseRequestDto request) {
+        Member member = memberRepository.findById(memberId)
+            .orElseThrow(() -> new MemberNotFoundException("Member not found with id: " + memberId));
+
+        Privilege privilege = privilegeService.verifyAndGetPrivilege(request.getPrivilegeId());
+
+        if (!privilegeService.canMemberUsePrivilege(memberId, request.getPrivilegeId())) {
+            throw new PrivilegeNotAuthorizedException("Member is not authorized to use this privilege.");
+        }
+
+        String actionType = privilege.getBenefitActionType();
+        if (actionType == null) {
+            // Fallback to name if actionType is null, or handle as an error
+            // For now, let's assume if actionType is null, it's an unsupported privilege for direct point benefits
+            throw new UnsupportedOperationException("Privilege action type is null and cannot be processed for point benefits.");
+        }
+
+        switch (actionType) {
+            case "EARN_POINTS":
+                if (privilege.getBenefitPointAmount() != null && privilege.getBenefitPointAmount() > 0) {
+                    this.earnPoints(member, privilege.getBenefitPointAmount(), "PRIVILEGE_BENEFIT",
+                        "Earned points via privilege: " + privilege.getName(), LocalDateTime.now().plusYears(1));
+                    privilegeUsageLogService.logPrivilegeUsage(memberId, privilege.getId(),
+                        "Used privilege: " + privilege.getName() + " to earn " + privilege.getBenefitPointAmount() + " points.");
+                } else {
+                    throw new IllegalStateException("Privilege " + privilege.getName() + " is of type EARN_POINTS but has no valid point amount.");
+                }
+                break;
+            case "EXAMPLE_DISCOUNT":
+                // Assuming params contains originalCost
+                Object originalCostObj = request.getParams() != null ? request.getParams().get("originalCost") : null;
+                if (!(originalCostObj instanceof Number)) {
+                    throw new IllegalArgumentException("Missing or invalid 'originalCost' in request parameters for EXAMPLE_DISCOUNT privilege.");
+                }
+                double originalCost = ((Number) originalCostObj).doubleValue();
+
+                if (privilege.getBenefitPointAmount() == null || privilege.getBenefitPointAmount() <= 0 || privilege.getBenefitPointAmount() > 100) {
+                     throw new IllegalStateException("Privilege " + privilege.getName() + " is of type EXAMPLE_DISCOUNT but has no valid discount percentage (1-100).");
+                }
+                int discountPercentage = privilege.getBenefitPointAmount();
+                int discountAmountInPoints = (int) (originalCost * (discountPercentage / 100.0)); // Example: treat discount as points
+
+                if (discountAmountInPoints > 0) {
+                    this.earnPoints(member, discountAmountInPoints, "PRIVILEGE_DISCOUNT",
+                        "Discount via privilege: " + privilege.getName(), LocalDateTime.now().plusYears(1));
+                    privilegeUsageLogService.logPrivilegeUsage(memberId, privilege.getId(),
+                        "Used privilege: " + privilege.getName() + " for a discount equivalent to " + discountAmountInPoints + " points on an item costing " + originalCost + ".");
+                } else {
+                     privilegeUsageLogService.logPrivilegeUsage(memberId, privilege.getId(),
+                        "Used privilege: " + privilege.getName() + " for a discount on an item costing " + originalCost + ", but discount amount was zero points.");
+                }
+                break;
+            default:
+                throw new UnsupportedOperationException("Privilege action type '" + privilege.getBenefitActionType() + "' is not supported yet.");
+        }
     }
 }
